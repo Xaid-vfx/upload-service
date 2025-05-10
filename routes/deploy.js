@@ -3,6 +3,7 @@ const { nanoid } = require('nanoid');
 const router = express.Router();
 const deployStore = require('../utils/deployStore');
 const triggerBuildWorker = require('../worker/triggerBuild');
+const { isNextJsProject } = require('../utils/repoValidator');
 
 // Validate GitHub URL
 const isValidGitHubUrl = (url) => {
@@ -28,6 +29,18 @@ router.post('/deploy', async (req, res) => {
   }
 
   try {
+    // Check if it's a Next.js project
+    const isNextProject = await isNextJsProject(repoUrl);
+    if (!isNextProject) {
+      return res.status(400).json({ 
+        error: 'Not a valid Next.js project. The repository must have:' +
+          '\n- package.json with next, react, and react-dom dependencies' +
+          '\n- next.config.js/ts/mjs file' +
+          '\n- pages/ or app/ directory' +
+          '\n- next dev/build/start scripts'
+      });
+    }
+
     // Generate unique deployment ID
     const id = nanoid(10);
     
