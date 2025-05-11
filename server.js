@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const deployRoutes = require('./routes/deploy');
 
@@ -21,5 +22,5 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`API endpoints:`);
   console.log(`  POST http://localhost:${PORT}/deploy`);
-  console.log(`  GET  http://localhost:${PORT}/deploy/:id/status`);
+  // console.log(`  GET  http://localhost:${PORT}/deploy/:id/status`);
 }); 

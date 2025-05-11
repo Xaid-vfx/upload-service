@@ -1,22 +1,29 @@
 const deployStore = require('../utils/deployStore');
+const { sendDeploymentJob } = require('../utils/sqsService');
 
-// Simulated build worker trigger
+// Real build worker trigger using SQS
 const triggerBuildWorker = async (id, repoUrl) => {
-  console.log(`[Build Worker] Starting build for deployment ${id}`);
+  console.log(`[Build Worker] Triggering build for deployment ${id}`);
   console.log(`[Build Worker] Repository: ${repoUrl}`);
   
-  // Simulate build process
-  setTimeout(() => {
-    // In a real implementation, this would be handled by a separate process
-    // that updates the deployment status through an API or message queue
-    deployStore.updateStatus(id, 'building');
+  try {
+    // Send deployment job to SQS queue
+    const success = await sendDeploymentJob(id, repoUrl);
     
-    // Simulate build completion after 5 seconds
-    setTimeout(() => {
-      deployStore.updateStatus(id, 'ready');
-      console.log(`[Build Worker] Build completed for deployment ${id}`);
-    }, 5000);
-  }, 1000);
+    if (success) {
+      // Update local status to building (will be updated by build-service via SQS)
+      deployStore.updateStatus(id, 'building');
+      console.log(`[Build Worker] Deployment job sent to queue successfully`);
+    } else {
+      // If SQS fails, mark as failed
+      deployStore.updateStatus(id, 'failed');
+      throw new Error('Failed to send job to SQS queue');
+    }
+  } catch (error) {
+    console.error(`[Build Worker] Error triggering build:`, error);
+    deployStore.updateStatus(id, 'failed');
+    throw error;
+  }
 };
 
 module.exports = triggerBuildWorker; 
